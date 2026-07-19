@@ -699,7 +699,6 @@ class _VideoScreenState extends State<VideoScreen> {
     );
   }
 }
-}
 
 // ===========================================================================
 // D. AUDIO — "Play one audio within app (media player)"
