@@ -290,13 +290,17 @@ class _CustomReceiverScreenState extends State<CustomReceiverScreen> {
     _subscription =
         _customBroadcastChannel.receiveBroadcastStream().listen(
       (dynamic event) {
-        setState(() {
-          _received = event as String;
-          _status = 'Broadcast received!';
-        });
+        if (mounted) {
+          setState(() {
+            _received = event as String;
+            _status = 'Broadcast received!';
+          });
+        }
       },
       onError: (Object e) {
-        setState(() => _status = 'Receiver error: $e');
+        if (mounted) {
+          setState(() => _status = 'Receiver error: $e');
+        }
       },
     );
     // Step 2 — give the platform side a beat to finish registering,
@@ -612,11 +616,17 @@ class _AudioScreenState extends State<AudioScreen> {
   void initState() {
     super.initState();
     _subs.add(_player.onPlayerStateChanged.listen(
-        (PlayerState s) => setState(() => _state = s)));
+        (PlayerState s) {
+          if (mounted) setState(() => _state = s);
+        }));
     _subs.add(_player.onDurationChanged
-        .listen((Duration d) => setState(() => _duration = d)));
+        .listen((Duration d) {
+          if (mounted) setState(() => _duration = d);
+        }));
     _subs.add(_player.onPositionChanged
-        .listen((Duration p) => setState(() => _position = p)));
+        .listen((Duration p) {
+          if (mounted) setState(() => _position = p);
+        }));
   }
 
   @override
