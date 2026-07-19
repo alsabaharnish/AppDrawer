@@ -1,0 +1,21 @@
+name: assignment2
+description: CSE 489 Assignment 2 - Broadcast Receiver, Image Scale, Video, Audio.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  video_player: ^2.9.2
+  audioplayers: ^6.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
