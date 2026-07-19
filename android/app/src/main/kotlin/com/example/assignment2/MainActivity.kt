@@ -107,19 +107,27 @@ class MainActivity : FlutterActivity() {
                 override fun onListen(args: Any?, events: EventChannel.EventSink?) {
                     receiver = object : BroadcastReceiver() {
                         override fun onReceive(context: Context?, intent: Intent?) {
-                            if (intent?.action == Intent.ACTION_BATTERY_CHANGED) {
-                                val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
-                                val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
-                                if (level >= 0 && scale > 0) {
-                                    events?.success(level * 100 / scale)
-                                }
-                            }
+                            sendBatteryLevel(intent, events)
                         }
                     }
-                    registerReceiver(
+                    val stickyIntent = registerReceiver(
                         receiver,
                         IntentFilter(Intent.ACTION_BATTERY_CHANGED)
                     )
+                    // ACTION_BATTERY_CHANGED is a sticky broadcast. Send the
+                    // initial value immediately so the UI doesn't have to wait
+                    // for the next battery level change.
+                    sendBatteryLevel(stickyIntent, events)
+                }
+
+                private fun sendBatteryLevel(intent: Intent?, events: EventChannel.EventSink?) {
+                    if (intent?.action == Intent.ACTION_BATTERY_CHANGED) {
+                        val level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, -1)
+                        val scale = intent.getIntExtra(BatteryManager.EXTRA_SCALE, -1)
+                        if (level >= 0 && scale > 0) {
+                            events?.success(level * 100 / scale)
+                        }
+                    }
                 }
 
                 override fun onCancel(args: Any?) {

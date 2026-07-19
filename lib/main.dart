@@ -612,6 +612,9 @@ class _AudioScreenState extends State<AudioScreen> {
   Duration _position = Duration.zero;
   final List<StreamSubscription<dynamic>> _subs = <StreamSubscription<dynamic>>[];
 
+  // Local state to prevent the slider from "jumping" while dragging.
+  double? _dragValue;
+
   @override
   void initState() {
     super.initState();
@@ -672,11 +675,17 @@ class _AudioScreenState extends State<AudioScreen> {
               max: _duration.inMilliseconds
                   .toDouble()
                   .clamp(1, double.infinity),
-              value: _position.inMilliseconds
-                  .toDouble()
-                  .clamp(0, _duration.inMilliseconds.toDouble()),
-              onChanged: (double v) =>
-                  _player.seek(Duration(milliseconds: v.toInt())),
+              value: _dragValue ??
+                  _position.inMilliseconds
+                      .toDouble()
+                      .clamp(0, _duration.inMilliseconds.toDouble()),
+              onChanged: (double v) {
+                setState(() => _dragValue = v);
+              },
+              onChangeEnd: (double v) async {
+                await _player.seek(Duration(milliseconds: v.toInt()));
+                setState(() => _dragValue = null);
+              },
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
