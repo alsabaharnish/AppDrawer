@@ -538,10 +538,15 @@ class _VideoScreenState extends State<VideoScreen> {
         final VideoPlayerController newController = 
             VideoPlayerController.networkUrl(Uri.parse(url));
         
+        // Add listener early to catch all state changes
+        newController.addListener(_listener);
+        
         await newController.initialize();
         
         if (mounted) {
+          // Success! Cleanup old controller
           if (_controller != null) {
+            _controller!.removeListener(_listener);
             await _controller!.dispose();
           }
           
@@ -551,7 +556,6 @@ class _VideoScreenState extends State<VideoScreen> {
             _error = null;
           });
           
-          _controller!.addListener(_listener);
           await _controller!.setLooping(true);
           await _controller!.play();
           return; 
@@ -562,14 +566,15 @@ class _VideoScreenState extends State<VideoScreen> {
       } catch (e) {
         lastError = e;
         debugPrint('Video load failed for $url: $e');
+        // If it failed, we don't need the listener anymore
       }
     }
 
     if (mounted) {
       setState(() {
-        _error = "All video sources failed.\n\nLast Error: $lastError\n\n"
-                 "This usually means the device cannot reach the video servers. "
-                 "Check your internet or try a real device.";
+        _error = "All video sources failed.\n\n"
+                 "This often happens due to emulator network restrictions or blocked domains. "
+                 "Last Error: $lastError";
         _initialized = false;
       });
     }
@@ -647,7 +652,10 @@ class _VideoScreenState extends State<VideoScreen> {
             width: double.infinity,
             child: AspectRatio(
               aspectRatio: _controller!.value.aspectRatio,
-              child: VideoPlayer(_controller!),
+              child: VideoPlayer(
+                _controller!,
+                key: ValueKey<String>(_controller!.dataSource),
+              ),
             ),
           ),
           VideoProgressIndicator(
