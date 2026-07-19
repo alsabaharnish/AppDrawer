@@ -512,26 +512,53 @@ class VideoScreen extends StatefulWidget {
 }
 
 class _VideoScreenState extends State<VideoScreen> {
-  static const String _videoUrl =
-      'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4';
-
-  late final VideoPlayerController _controller;
+  late VideoPlayerController _controller;
   bool _initialized = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(_videoUrl))
-      ..addListener(_listener)
-      ..initialize().then((_) {
-        if (mounted) {
-          setState(() => _initialized = true);
-          _controller.play();
+    _initPlayer();
+  }
+
+  Future<void> _initPlayer() async {
+    final List<String> urls = [
+      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
+      'https://vjs.zencdn.net/v/oceans.mp4',
+      'https://www.w3schools.com/html/mov_bbb.mp4',
+    ];
+
+    for (final url in urls) {
+      try {
+        if (_initialized) {
+          await _controller.dispose();
         }
-      }).catchError((Object e) {
-        if (mounted) setState(() => _error = 'Could not load video: $e');
+        _controller = VideoPlayerController.networkUrl(Uri.parse(url));
+        _controller.addListener(_listener);
+        await _controller.initialize();
+        
+        if (mounted) {
+          setState(() {
+            _initialized = true;
+            _error = null;
+          });
+          await _controller.setLooping(true);
+          await _controller.play();
+          return; // Success!
+        }
+      } catch (e) {
+        debugPrint('Failed to load $url: $e');
+        // Continue to next URL
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _error = "All video sources failed. This is likely a network or device codec issue.\n\nPlease check your internet connection or try on a real device.";
+        _initialized = false;
       });
+    }
   }
 
   void _listener() {
@@ -554,43 +581,101 @@ class _VideoScreenState extends State<VideoScreen> {
   @override
   Widget build(BuildContext context) {
     if (_error != null) {
-      return Center(child: Text(_error!));
-    }
-    if (!_initialized) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: <Widget>[
-        AspectRatio(
-          aspectRatio: _controller.value.aspectRatio,
-          child: VideoPlayer(_controller),
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
+              Text(_error!, textAlign: TextAlign.center),
+              const SizedBox(height: 24),
+              FilledButton(
+                onPressed: () {
+                  setState(() {
+                    _error = null;
+                    _initialized = false;
+                  });
+                  _controller.initialize().then((_) {
+                    if (mounted) {
+                      setState(() => _initialized = true);
+                      _controller.play();
+                    }
+                  });
+                },
+                child: const Text('Try Again'),
+              ),
+            ],
+          ),
         ),
-        VideoProgressIndicator(_controller, allowScrubbing: true),
-        const SizedBox(height: 8),
-        Row(
+      );
+    }
+
+    if (!_initialized) {
+      return const Center(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            IconButton.filled(
-              iconSize: 36,
-              onPressed: _togglePlay,
-              icon: Icon(_controller.value.isPlaying
-                  ? Icons.pause
-                  : Icons.play_arrow),
-            ),
-            const SizedBox(width: 12),
-            IconButton.filledTonal(
-              iconSize: 36,
-              onPressed: () {
-                _controller.seekTo(Duration.zero);
-                _controller.pause();
-                setState(() {});
-              },
-              icon: const Icon(Icons.stop),
-            ),
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text('Loading Video...'),
           ],
         ),
-      ],
+      );
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        children: <Widget>[
+          Container(
+            color: Colors.black,
+            width: double.infinity,
+            child: AspectRatio(
+              aspectRatio: _controller.value.aspectRatio,
+              child: VideoPlayer(_controller),
+            ),
+          ),
+          VideoProgressIndicator(
+            _controller,
+            allowScrubbing: true,
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                IconButton.filled(
+                  iconSize: 42,
+                  onPressed: _togglePlay,
+                  icon: Icon(_controller.value.isPlaying
+                      ? Icons.pause
+                      : Icons.play_arrow),
+                ),
+                const SizedBox(width: 20),
+                IconButton.filledTonal(
+                  iconSize: 42,
+                  onPressed: () {
+                    _controller.seekTo(Duration.zero);
+                    _controller.pause();
+                    setState(() {});
+                  },
+                  icon: const Icon(Icons.stop),
+                ),
+              ],
+            ),
+          ),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.info_outline),
+            title: const Text('Video Status'),
+            subtitle: Text(
+              _controller.value.isPlaying ? 'Playing' : 'Paused/Stopped',
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
