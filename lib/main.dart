@@ -513,7 +513,7 @@ class VideoScreen extends StatefulWidget {
 
 class _VideoScreenState extends State<VideoScreen> {
   static const String _videoUrl =
-      'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+      'https://flutter.github.io/assets-for-api-docs/assets/videos/bee.mp4';
 
   late final VideoPlayerController _controller;
   bool _initialized = false;
@@ -525,7 +525,10 @@ class _VideoScreenState extends State<VideoScreen> {
     _controller = VideoPlayerController.networkUrl(Uri.parse(_videoUrl))
       ..addListener(_listener)
       ..initialize().then((_) {
-        if (mounted) setState(() => _initialized = true);
+        if (mounted) {
+          setState(() => _initialized = true);
+          _controller.play();
+        }
       }).catchError((Object e) {
         if (mounted) setState(() => _error = 'Could not load video: $e');
       });
